@@ -1,0 +1,86 @@
+import bpy
+
+# Function to create a cylinder
+def create_cylinder(radius=1, depth=2, location=(0, 0, 0), vertices=32):
+    """
+    Create a cylinder in Blender.
+    
+    Parameters:
+    - radius: Radius of the cylinder.
+    - depth: Depth (height) of the cylinder.
+    - location: Location to place the cylinder in the scene.
+    - vertices: Number of vertices to define the cylinder's circumference.
+    """
+    
+    # Ensure we are in object mode
+    if bpy.context.object:
+        bpy.ops.object.mode_set(mode='OBJECT')
+    
+    # Add a new cylinder mesh
+    bpy.ops.mesh.primitive_cylinder_add(
+        radius=radius,
+        depth=depth,
+        vertices=vertices,
+        location=location
+    )
+
+    # Get the created cylinder object
+    cylinder = bpy.context.object
+
+    # Optional: Modify the cylinder's properties or apply transformations
+    cylinder.name = 'MyCylinder'
+    
+    # Flip Fluid settings (if applicable)
+    if "flip_fluid_operators" in dir(bpy.ops):
+        bpy.ops.flip_fluid_operators.flip_fluid_add()
+        if bpy.context.object:
+            bpy.context.object.flip_fluid.object_type = 'TYPE_FLUID'
+    
+    return cylinder
+
+# Function to create a cube
+def create_cube(location=(0, 0, 0), scale=(1, 1, 1)):
+    """
+    Create a cube in Blender.
+    
+    Parameters:
+    - location: Location to place the cube in the scene.
+    - scale: Scale of the cube in the x, y, and z axes.
+    """
+    
+    # Ensure we are in object mode
+    if bpy.context.object:
+        bpy.ops.object.mode_set(mode='OBJECT')
+    
+    # Add a new cube mesh
+    bpy.ops.mesh.primitive_cube_add(
+        location=location,
+        scale=scale
+    )
+
+    # Get the created cube object
+    cube = bpy.context.object
+
+    # Optional: Modify the cube's properties or apply transformations
+    cube.name = 'MyCube'
+    
+    # Flip Fluid settings (if applicable)
+    if "flip_fluid_operators" in dir(bpy.ops):
+        bpy.ops.flip_fluid_operators.flip_fluid_add()
+        if bpy.context.object:
+            bpy.context.object.flip_fluid.object_type = 'TYPE_DOMAIN'
+    
+    return cube
+
+# Remove all existing mesh objects (if needed)
+bpy.ops.object.select_all(action='DESELECT')
+bpy.ops.object.select_by_type(type='MESH')
+bpy.ops.object.delete()
+
+# Call the functions to create a cylinder and a cube
+create_cylinder(radius=1, depth=3, location=(0, 0, 0), vertices=32)
+create_cube(location=(0, 0, 0), scale=(2, 2, 2))
+
+#Baking
+bpy.ops.flip_fluid_operators.export_fluid_simulation()
+bpy.ops.flip_fluid_operators.bake_fluid_simulation()
