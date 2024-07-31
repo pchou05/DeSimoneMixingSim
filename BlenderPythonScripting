@@ -1,86 +1,195 @@
+import math
 import bpy
+import time
+from PIL import Image
 
-# Function to create a cylinder
-def create_cylinder(radius=1, depth=2, location=(0, 0, 0), vertices=32):
-    """
-    Create a cylinder in Blender.
-    
-    Parameters:
-    - radius: Radius of the cylinder.
-    - depth: Depth (height) of the cylinder.
-    - location: Location to place the cylinder in the scene.
-    - vertices: Number of vertices to define the cylinder's circumference.
-    """
-    
-    # Ensure we are in object mode
-    if bpy.context.object:
-        bpy.ops.object.mode_set(mode='OBJECT')
-    
-    # Add a new cylinder mesh
-    bpy.ops.mesh.primitive_cylinder_add(
-        radius=radius,
-        depth=depth,
-        vertices=vertices,
-        location=location
-    )
 
-    # Get the created cylinder object
-    cylinder = bpy.context.object
+class Color:
+    def __init__(self, red, green, blue):
+        self.red = red
+        self.green = green
+        self.blue = blue
 
-    # Optional: Modify the cylinder's properties or apply transformations
-    cylinder.name = 'MyCylinder'
-    
-    # Flip Fluid settings (if applicable)
-    if "flip_fluid_operators" in dir(bpy.ops):
-        bpy.ops.flip_fluid_operators.flip_fluid_add()
-        if bpy.context.object:
-            bpy.context.object.flip_fluid.object_type = 'TYPE_FLUID'
-    
-    return cylinder
+    @classmethod
+    def from_rgb(cls, rgb):
+        # Adjust this method to handle RGB tuples instead of integers
+        if isinstance(rgb, tuple):
+            red, green, blue = rgb
+        else:
+            red = (rgb >> 16) & 0xFF
+            green = (rgb >> 8) & 0xFF
+            blue = rgb & 0xFF
+        return cls(red, green, blue)
 
-# Function to create a cube
-def create_cube(location=(0, 0, 0), scale=(1, 1, 1)):
-    """
-    Create a cube in Blender.
-    
-    Parameters:
-    - location: Location to place the cube in the scene.
-    - scale: Scale of the cube in the x, y, and z axes.
-    """
-    
-    # Ensure we are in object mode
-    if bpy.context.object:
-        bpy.ops.object.mode_set(mode='OBJECT')
-    
-    # Add a new cube mesh
-    bpy.ops.mesh.primitive_cube_add(
-        location=location,
-        scale=scale
-    )
+    def get_red(self):
+        return self.red
 
-    # Get the created cube object
-    cube = bpy.context.object
+    def get_green(self):
+        return self.green
 
-    # Optional: Modify the cube's properties or apply transformations
-    cube.name = 'MyCube'
+    def get_blue(self):
+        return self.blue
+
+def calculate_color_distance(c1, c2):
+    r = c1.get_red() - c2.get_red()
+    g = c1.get_green() - c2.get_green()
+    b = c1.get_blue() - c2.get_blue()
+    return math.sqrt(r * r + g * g + b * b)
+
+def calculate_average_deviation(image_path, ideal_color):
+    try:
+        image = Image.open(image_path)
+        width, height = image.size
+        total_deviation = 0.0
+        pixel_count = 0
+
+        for x in range(width):
+            for y in range(height):
+                pixel_color = Color.from_rgb(image.getpixel((x, y)))
+                total_deviation += calculate_color_distance(pixel_color, ideal_color)
+                pixel_count += 1
+
+        return total_deviation / pixel_count if pixel_count > 0 else 0.0
+
+    except IOError as e:
+        print(f"Error opening image file: {e}")
+        return 0.0
+
+def average_color(image_path):
+    red_sum = 0
+    green_sum = 0
+    blue_sum = 0
+    pixel_count = 0
+
+    try:
+        image = Image.open(image_path)
+        width, height = image.size
+
+        for x in range(width):
+            for y in range(height):
+                pixel_color = Color.from_rgb(image.getpixel((x, y)))
+                red_sum += pixel_color.get_red()
+                green_sum += pixel_color.get_green()
+                blue_sum += pixel_color.get_blue()
+                pixel_count += 1
+
+        return Color(red_sum // pixel_count, green_sum // pixel_count, blue_sum // pixel_count) if pixel_count > 0 else Color(0, 0, 0)
+
+    except IOError as e:
+        print(f"Error opening image file: {e}")
+        return Color(0, 0, 0)
+
+def calculate_variance_of_deviation(image_path, mean_color):
+    try:
+        image = Image.open(image_path)
+        width, height = image.size
+        variance = 0.0
+        pixel_count = 0
+
+        for x in range(width):
+            for y in range(height):
+                pixel_color = Color.from_rgb(image.getpixel((x, y)))
+                deviation = calculate_color_distance(pixel_color, mean_color)
+                variance += deviation ** 2
+                pixel_count += 1
+
+        return variance / pixel_count if pixel_count > 0 else 0.0
+
+    except IOError as e:
+        print(f"Error opening image file: {e}")
+        return 0.0
+
+def over_concentration(avg_color):
+    red_to_blue_ratio = avg_color.get_red() / avg_color.get_blue() if avg_color.get_blue() != 0 else float('inf')
+    return red_to_blue_ratio > 1.6 or red_to_blue_ratio < 0.7
+
+def stats():
+    global avg_color 
+    paths = ["C:/Users/DeSimoneLab/Downloads/Patrick/MixingFluidRenders/Test3.png"]  # Use raw string for file paths
+    ideal_mixed_color = Color(64, 0, 83)
+
+    for path in paths:
+        average_deviation = calculate_average_deviation(path, ideal_mixed_color)
+        avg_color= average_color(path)
+        variance_of_deviation = calculate_variance_of_deviation(path, avg_color)
+        
+        print(f"Properties of {path}")
+        if over_concentration(avg_color):
+            print("This Might Be The Source? Over Saturation of B/R")
+        print(f"Average Deviation from Ideal Mixed Color: {average_deviation}")
+        print(f"Variance of Deviation: {variance_of_deviation}")
+        print(f"Mixing Ratio B/R: {avg_color.get_blue() / avg_color.get_red() if avg_color.get_red() != 0 else float('inf')}")
+        print("\n")
+
+
+
+####################################################baking checking##########################################################
+
+
+def is_baking_complete():
+    # Check if baking is active for any object
+    for obj in bpy.data.objects:
+        if obj.type == 'MESH' and hasattr(obj.modifiers.get('Smoke'), 'domain_settings'):
+            if obj.modifiers['Smoke'].domain_settings.is_baking:
+                return False
+    return True
+
+def wait_for_bake_completion(timeout=300):
+    start_time = time.time()
     
-    # Flip Fluid settings (if applicable)
-    if "flip_fluid_operators" in dir(bpy.ops):
-        bpy.ops.flip_fluid_operators.flip_fluid_add()
-        if bpy.context.object:
-            bpy.context.object.flip_fluid.object_type = 'TYPE_DOMAIN'
-    
-    return cube
+    while not is_baking_complete():
+        time.sleep(1)  # Sleep for a short while before checking again
+        
+        if time.time() - start_time > timeout:
+            print("Timeout reached. Bake might be taking too long.")
+            break
 
-# Remove all existing mesh objects (if needed)
-bpy.ops.object.select_all(action='DESELECT')
-bpy.ops.object.select_by_type(type='MESH')
-bpy.ops.object.delete()
+    if is_baking_complete():
+        print("Baking process is complete.")
+    else:
+        print("Baking process is still ongoing or encountered an issue.")
 
-# Call the functions to create a cylinder and a cube
-create_cylinder(radius=1, depth=3, location=(0, 0, 0), vertices=32)
-create_cube(location=(0, 0, 0), scale=(2, 2, 2))
+########flow compensation#####################
+def flow_compensation():
+    if avg_color.get_blue() / avg_color.get_red() >1:
+            bpy.context.object['BlueFlow'].flip_fluid.inflow.inflow_velocity[2] += .2
+    else:
+            bpy.context.object['RedFlow'].flip_fluid.inflow.inflow_velocity[2] += .2
 
+
+
+
+
+
+################################################runtime#######################
 #Baking
 bpy.ops.flip_fluid_operators.export_fluid_simulation()
 bpy.ops.flip_fluid_operators.bake_fluid_simulation()
+wait_for_bake_completion()
+stats()
+flow_compensation()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
