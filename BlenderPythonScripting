@@ -154,8 +154,11 @@ def wait_for_bake_completion(timeout=300):
 def flow_compensation():
     if avg_color.get_blue() / avg_color.get_red() >1:
             bpy.context.object['BlueFlow'].flip_fluid.inflow.inflow_velocity[2] += .2
-    else:
+    elif avg_color.get_blue() / avg_color.get_red() <1:
             bpy.context.object['RedFlow'].flip_fluid.inflow.inflow_velocity[2] += .2
+    else:
+        bpy.context.object['RedFlow'].flip_fluid.inflow.inflow_velocity[2] -= .2
+        bpy.context.object['BlueFlow'].flip_fluid.inflow.inflow_velocity[2] -= .2
 
 
 
