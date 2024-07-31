@@ -7,7 +7,7 @@ import javax.imageio.ImageIO;
 public class ImageAnalyzer {
 
     public static void main(String[] args) {
-        String[] paths = {"C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\Test1.png", "C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\Test2.png", "C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\Test3.png", "C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\Test2.png", "C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\TestV2.png", "E:\\idealSample.png", "C:\\Users\\DeSimoneLab\\Downloads\\MixingFluidRenders\\TestV2.2.png"};  // Replace with your image path
+        String[] paths = {""};  // Replace with your image path
         Color idealMixedColor = new Color(64, 0, 83);
 
         for(String path : paths){
