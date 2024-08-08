@@ -1,30 +1,28 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-
 import javax.imageio.ImageIO;
 
 public class ImageAnalyzer {
 
     public static void main(String[] args) {
-        String[] paths = {""};  // Replace with your image path
+        String[] paths = {"C:\\Users\\patri\\Downloads\\ImageSamplev2.png", "C:\\Users\\patri\\Downloads\\ImageSamplev1.png"} ;  // Replace with your image path
         Color idealMixedColor = new Color(64, 0, 83);
 
         for(String path : paths){
-            double averageDeviation = calculateAverageDeviation(path, idealMixedColor);
+            double averageDistance = calculateAverageDistance(path, idealMixedColor);
             double varianceOfDeviation = varianceOfDeviation(path, averageColor(path));
             System.out.println("Properties of " + path);
             if(overConcentration(averageColor(path))){    
                 System.out.println("This Might Be The Source? Over Saturation of B/R");
             }
-            System.out.println("Average Deviation from Ideal Mixed Color: " + averageDeviation);
-            System.out.println("Variance of Deviation: " + varianceOfDeviation);
+            System.out.println("Average Distance from Ideal Mixed Color: " + averageDistance);
+            System.out.println("Standard Deviation of Dataset of Distance from Mixed Color: " + calculateStandardDevationFromColor(path, idealMixedColor));
+            System.out.println("Variance of Distance from Ideal Color aka Homogeneity: " + varianceOfDeviation);
             System.out.println("Mixing Ratio B/R: " + (averageColor(path).getBlue()/averageColor(path).getRed()));
             System.out.println("\n");
         }
     }
-
-
 
     static class Color {
         private double red;
@@ -57,13 +55,11 @@ public class ImageAnalyzer {
     }
     
     public static boolean overConcentration(Color avgColor){
-        if(avgColor.getRed()/avgColor.getBlue()>1.6 || avgColor.getRed()/avgColor.getBlue()<.7){
+        if(avgColor.getRed()/avgColor.getBlue()>1.6 || avgColor.getRed()/avgColor.getBlue()<0.7){
             return true;
         }
         return false;
     }
-
-
 
     public static double calculateColorDistance(Color c1, Color c2) {
         double r = c1.getRed() - c2.getRed();
@@ -72,7 +68,7 @@ public class ImageAnalyzer {
         return Math.sqrt(r * r + g * g + b * b);
     }
 
-    public static double calculateAverageDeviation(String path, Color idealMixedColor) {
+    public static double calculateAverageDistance(String path, Color idealMixedColor) {
         BufferedImage image;
         try {
             image = ImageIO.read(new File(path));
@@ -93,6 +89,35 @@ public class ImageAnalyzer {
 
             return totalDeviation / pixelCount;
 
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return 0.0;
+    }
+
+    public static double calculateStandardDevationFromColor(String path, Color idealMixedColor) {
+        BufferedImage image;
+        try {
+            image = ImageIO.read(new File(path));
+
+            int width = image.getWidth();
+            int height = image.getHeight();
+
+            double totalSquaredDeviation = 0.0;
+            int pixelCount = 0;
+            Color avgColor = averageColor(path);
+
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    Color pixelColor = new Color(image.getRGB(x, y));
+                    double distance = calculateColorDistance(pixelColor, idealMixedColor);
+                    totalSquaredDeviation += Math.pow(distance - calculateAverageDistance(path, idealMixedColor), 2);
+                    pixelCount++;
+                }
+            }
+
+            return Math.sqrt(totalSquaredDeviation / (pixelCount - 1));
         } catch (IOException e) {
             e.printStackTrace();
         }
